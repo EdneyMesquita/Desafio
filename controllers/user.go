@@ -135,5 +135,56 @@ func EditUser(writer http.ResponseWriter, request *http.Request) {
 }
 
 func RemoveUser(writer http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(writer, "DELETE remove user")
+	params := mux.Vars(request)
+	uuid := params["uuid"]
+
+	if uuid == "" {
+		throwJSONError(writer, "Não foi possível obter os dados!")
+		return
+	}
+
+	conn := database.Connect()
+
+	var idAvatar int
+	err := conn.QueryRow(fmt.Sprintf("SELECT a.id FROM users u LEFT JOIN avatar a ON(a.id = u.avatar) WHERE a.uuiduser = '%s' LIMIT 1", uuid)).Scan(&idAvatar)
+
+	if idAvatar != 0 {
+		sqlDeleteAvatar := fmt.Sprintf("DELETE FROM avatar WHERE id = %d ", idAvatar)
+
+		result, err := conn.Exec(sqlDeleteAvatar)
+		if err != nil {
+			throwJSONError(writer, err.Error())
+			return
+		}
+
+		rowsAffected, _ := result.RowsAffected()
+		if rowsAffected == 0 {
+			throwJSONError(writer, "Não foi possível excluir o Usuário!")
+			return
+		}
+	}
+
+	sqlDeleteUser := fmt.Sprintf("DELETE FROM users WHERE uuiduser = '%s'", uuid)
+
+	result, err := conn.Exec(sqlDeleteUser)
+	if err != nil {
+		throwJSONError(writer, err.Error())
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		throwJSONError(writer, "Não foi possível excluir o Usuário!")
+		return
+	}
+
+	success := Success{
+		Status:  "success",
+		Message: "Usuário excluído com sucesso!",
+	}
+
+	jsonString, _ := json.Marshal(success)
+
+	writer.WriteHeader(http.StatusOK)
+	fmt.Fprintf(writer, string(jsonString))
 }
