@@ -1,6 +1,6 @@
 package main
 
-import "desafio/routes"
+import "Desafio/routes"
 
 func main() {
 	routes.Serve()
