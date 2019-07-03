@@ -12,6 +12,7 @@ import (
 
 type (
 	UserData struct {
+		UUID       string `json:"uuiduser"`
 		AvatarURL  string `json:"avatarurl"`
 		AvatarType string `json:"avatartype"`
 		Name       string `json:"name"`
@@ -131,7 +132,70 @@ func AddUser(writer http.ResponseWriter, request *http.Request) {
 }
 
 func EditUser(writer http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(writer, "PUT edit user")
+	err := request.ParseForm()
+	if err != nil {
+		throwJSONError(writer, "Não foi possível obter os dados!")
+		return
+	}
+
+	userdata := UserData{
+		UUID:       request.FormValue("uuiduser"),
+		AvatarURL:  request.FormValue("avatarurl"),
+		AvatarType: request.FormValue("avatartype"),
+		Name:       request.FormValue("name"),
+		CPF:        request.FormValue("cpf"),
+		Email:      request.FormValue("email"),
+		Password:   request.FormValue("password"),
+	}
+
+	conn := database.Connect()
+
+	var idAvatar int
+	err = conn.QueryRow(fmt.Sprintf("SELECT a.id FROM users u LEFT JOIN avatar a ON(a.id = u.avatar) WHERE u.uuiduser = '%s' LIMIT 1", userdata.UUID)).Scan(&idAvatar)
+
+	if idAvatar == 0 {
+		sqlInsertAvatar := fmt.Sprintf("INSERT INTO avatar (url, type) VALUES ('%s', '%s')", userdata.AvatarURL, userdata.AvatarType)
+
+		result, err := conn.Exec(sqlInsertAvatar)
+		if err != nil {
+			throwJSONError(writer, err.Error())
+			return
+		}
+
+		rowsAffected, _ := result.RowsAffected()
+		if rowsAffected == 0 {
+			throwJSONError(writer, "Não foi possível editar o Usuário!")
+			return
+		}
+
+		err = conn.QueryRow("SELECT id FROM avatar ORDER BY id DESC LIMIT 1").Scan(&idAvatar)
+	}
+
+	valores := updateString(userdata.toMap())
+
+	sqlUpdateUser := fmt.Sprintf("UPDATE users SET %s WHERE uuiduser = '%s'", valores, userdata.UUID)
+	fmt.Println(sqlUpdateUser)
+	result, err := conn.Exec(sqlUpdateUser)
+	if err != nil {
+		throwJSONError(writer, err.Error())
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		throwJSONError(writer, "Não foi possível editar o Usuário!")
+		return
+	}
+
+	success := Success{
+		Status:  "success",
+		Message: "Usuário editado com sucesso!",
+	}
+
+	jsonString, _ := json.Marshal(success)
+
+	writer.WriteHeader(http.StatusOK)
+	fmt.Fprintf(writer, string(jsonString))
 }
 
 func RemoveUser(writer http.ResponseWriter, request *http.Request) {
@@ -146,7 +210,7 @@ func RemoveUser(writer http.ResponseWriter, request *http.Request) {
 	conn := database.Connect()
 
 	var idAvatar int
-	err := conn.QueryRow(fmt.Sprintf("SELECT a.id FROM users u LEFT JOIN avatar a ON(a.id = u.avatar) WHERE a.uuiduser = '%s' LIMIT 1", uuid)).Scan(&idAvatar)
+	err := conn.QueryRow(fmt.Sprintf("SELECT a.id FROM users u LEFT JOIN avatar a ON(a.id = u.avatar) WHERE u.uuiduser = '%s' LIMIT 1", uuid)).Scan(&idAvatar)
 
 	if idAvatar != 0 {
 		sqlDeleteAvatar := fmt.Sprintf("DELETE FROM avatar WHERE id = %d ", idAvatar)
@@ -187,4 +251,29 @@ func RemoveUser(writer http.ResponseWriter, request *http.Request) {
 
 	writer.WriteHeader(http.StatusOK)
 	fmt.Fprintf(writer, string(jsonString))
+}
+
+func (userdata UserData) toMap() map[string]string {
+	var sInterface map[string]string
+	inrec, _ := json.Marshal(userdata)
+	json.Unmarshal(inrec, &sInterface)
+
+	return sInterface
+}
+
+func updateString(data map[string]string) string {
+	var resultado string
+
+	count := 1
+	for field, val := range data {
+		if val != "" {
+			if count == len(data) {
+				resultado += fmt.Sprintf("%s = '%s' ", field, val)
+			} else {
+				resultado += fmt.Sprintf("%s = '%s', ", field, val)
+			}
+		}
+		count++
+	}
+	return resultado
 }
