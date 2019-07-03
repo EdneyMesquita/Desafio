@@ -13,7 +13,11 @@ func Serve() {
 
 	r.HandleFunc("/ping", controllers.Ping).Methods("POST")
 	r.HandleFunc("/auth", controllers.Auth).Methods("POST")
+
 	r.HandleFunc("/user/{uuid}", controllers.User).Methods("GET")
+	r.HandleFunc("/user", controllers.AddUser).Methods("POST")
+	r.HandleFunc("/user", controllers.EditUser).Methods("PUT")
+	r.HandleFunc("/user", controllers.RemoveUser).Methods("DELETE")
 
 	http.ListenAndServe(":8080", r)
 }

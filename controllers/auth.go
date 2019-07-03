@@ -26,8 +26,8 @@ type (
 		DataStart  string `json:"datastart"`
 	}
 
-	//Success is the struct that will be converted into the JSON of the response if the code is 200
-	Success struct {
+	//ResultData is the struct that will be converted into the JSON of the response if the code is 200
+	ResultData struct {
 		Status   string      `json:"status"`
 		Message  string      `json:"message"`
 		TokenJWT interface{} `json:"tokenjwt"`
@@ -71,11 +71,11 @@ func Auth(writer http.ResponseWriter, request *http.Request) {
 		}
 
 		if login.ID == 0 {
-			throwJSONError(writer)
+			throwJSONError(writer, "Usuário não pôde ser autenticado!")
 			return
 		}
 
-		success := Success{
+		resultdata := ResultData{
 			Status:   "success",
 			Message:  "Usuário encontrado e token gerado",
 			TokenJWT: "",
@@ -85,17 +85,17 @@ func Auth(writer http.ResponseWriter, request *http.Request) {
 		}
 
 		writer.WriteHeader(http.StatusOK)
-		stringToReturn, _ := json.Marshal(success)
+		stringToReturn, _ := json.Marshal(resultdata)
 		fmt.Fprintf(writer, string(stringToReturn))
 	} else {
-		throwJSONError(writer)
+		throwJSONError(writer, "Usuário não pôde ser autenticado!")
 	}
 }
 
-func throwJSONError(writer http.ResponseWriter) {
+func throwJSONError(writer http.ResponseWriter, message string) {
 	error := &Error{
 		Status:  "error",
-		Message: "Usuário não pôde ser autenticado!",
+		Message: message,
 	}
 	jsonString, _ := json.Marshal(error)
 
