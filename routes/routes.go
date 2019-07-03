@@ -11,6 +11,7 @@ import (
 func Serve() {
 	r := mux.NewRouter()
 
+	r.HandleFunc("/ping", controllers.Ping).Methods("POST")
 	r.HandleFunc("/auth", controllers.Auth).Methods("POST")
 	r.HandleFunc("/user/{uuid}", controllers.User).Methods("GET")
 
