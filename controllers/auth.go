@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"Desafio/database"
+	"Desafio/utils"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -75,10 +76,13 @@ func Auth(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
+		loginJSONString, _ := json.Marshal(login)
+		uuidKey := []byte(login.UUIDUser)
+
 		resultdata := ResultData{
 			Status:   "success",
 			Message:  "Usuário encontrado e token gerado",
-			TokenJWT: "",
+			TokenJWT: utils.GenerateToken(string(loginJSONString), uuidKey),
 			Expires:  "",
 			TokenMsg: "use o token para acessar os endpoints!",
 			Login:    login,
@@ -93,11 +97,11 @@ func Auth(writer http.ResponseWriter, request *http.Request) {
 }
 
 func throwJSONError(writer http.ResponseWriter, message string) {
-	error := &Error{
+	jsonMsg := &utils.JSONMsg{
 		Status:  "error",
 		Message: message,
 	}
-	jsonString, _ := json.Marshal(error)
+	jsonString, _ := json.Marshal(jsonMsg)
 
 	writer.WriteHeader(http.StatusInternalServerError)
 	fmt.Fprintf(writer, string(jsonString))

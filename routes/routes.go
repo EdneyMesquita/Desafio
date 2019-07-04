@@ -17,7 +17,7 @@ func Serve() {
 	r.HandleFunc("/user/{uuid}", controllers.User).Methods("GET")
 	r.HandleFunc("/user", controllers.AddUser).Methods("POST")
 	r.HandleFunc("/user", controllers.EditUser).Methods("PUT")
-	r.HandleFunc("/user", controllers.RemoveUser).Methods("DELETE")
+	r.HandleFunc("/user/{uuid}", controllers.RemoveUser).Methods("DELETE")
 
 	http.ListenAndServe(":8080", r)
 }
