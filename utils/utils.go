@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"log"
 
 	jose "github.com/dvsekhvalnov/jose2go"
@@ -23,11 +22,11 @@ func GenerateToken(payload string, key []byte) string {
 	return token
 }
 
-func DecodeToken(token string, key []byte) {
+func DecodeToken(token string, key []byte) (string, interface{}) {
 	payload, headers, err := jose.Decode(token, key)
 	if err != nil {
-		log.Fatal(err.Error())
+		return "", false
 	}
 
-	fmt.Printf("%s\n\n%v", payload, headers)
+	return payload, headers
 }
